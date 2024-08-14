@@ -1,0 +1,1170 @@
+openapi: 3.0.0
+info:
+  title: Battery Management Platform API
+  description: API for managing and monitoring EV batteries and swapping cabinets
+  version: 1.0.0
+  contact:
+    name: Zembo
+    email: hungai@zem.bo
+    url: https://zem.bo/
+servers:
+  - url: https://api.zem.bo/v1
+    description: Production server
+  - url: https://staging-api.zem.bo/v1
+    description: Staging server
+tags:
+  - name: batteries
+    description: Battery management operations
+  - name: battery-readings
+    description: Battery reading operations
+  - name: swapping-cabinets
+    description: Swapping cabinet operations
+  - name: analytics
+    description: Analytics and reporting
+  - name: alerts
+    description: Alert management
+
+paths:
+  /batteries:
+    get:
+      summary: List all batteries
+      tags:
+        - batteries
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, inactive, charging, discharging, maintenance]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Battery'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    post:
+      summary: Register a new battery
+      tags:
+        - batteries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewBattery'
+      responses:
+        '201':
+          description: Successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Battery'
+
+  /batteries/{batteryId}:
+    get:
+      summary: Get battery details
+      tags:
+        - batteries
+      parameters:
+        - in: path
+          name: batteryId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Battery'
+        '404':
+          description: Battery not found
+
+    put:
+      summary: Update battery information
+      tags:
+        - batteries
+      parameters:
+        - in: path
+          name: batteryId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBattery'
+      responses:
+        '200':
+          description: Successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Battery'
+        '404':
+          description: Battery not found
+
+  /batteries/{batteryId}/readings:
+    get:
+      summary: Get battery readings
+      tags:
+        - battery-readings
+      parameters:
+        - in: path
+          name: batteryId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BatteryReading'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /batteries/{batteryId}/latest-reading:
+    get:
+      summary: Get latest battery reading
+      tags:
+        - battery-readings
+      parameters:
+        - in: path
+          name: batteryId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatteryReading'
+        '404':
+          description: No readings found for the battery
+
+  /batteries/{batteryId}/cell-voltages:
+    get:
+      summary: Get cell voltages for a specific reading
+      tags:
+        - battery-readings
+      parameters:
+        - in: path
+          name: batteryId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: readingTime
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CellVoltage'
+        '404':
+          description: No reading found for the specified time
+
+  /batteries/health:
+    get:
+      summary: Get health information for all batteries
+      tags:
+        - batteries
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BatteryHealth'
+
+  /batteries/in-radius:
+    get:
+      summary: Find batteries within a certain radius
+      tags:
+        - batteries
+      parameters:
+        - in: query
+          name: lat
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: lon
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: radius
+          required: true
+          schema:
+            type: number
+            description: Radius in meters
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BatteryLocation'
+
+  /swapping-cabinets:
+    get:
+      summary: List all swapping cabinets
+      tags:
+        - swapping-cabinets
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, inactive, maintenance]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SwappingCabinet'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /swapping-cabinets/{cabinetId}:
+    get:
+      summary: Get swapping cabinet details
+      tags:
+        - swapping-cabinets
+      parameters:
+        - in: path
+          name: cabinetId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SwappingCabinet'
+        '404':
+          description: Swapping cabinet not found
+
+  /swapping-cabinets/{cabinetId}/slots:
+    get:
+      summary: Get status of all slots in a cabinet
+      tags:
+        - swapping-cabinets
+      parameters:
+        - in: path
+          name: cabinetId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CabinetSlot'
+
+  /swapping-cabinets/{cabinetId}/metrics:
+    get:
+      summary: Get metrics for a swapping cabinet
+      tags:
+        - swapping-cabinets
+      parameters:
+        - in: path
+          name: cabinetId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CabinetMetrics'
+
+  /analytics/battery-health:
+    get:
+      summary: Get battery health analytics
+      tags:
+        - analytics
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatteryHealthAnalytics'
+
+  /analytics/most-active-cabinets:
+    get:
+      summary: Get most active swapping cabinets
+      tags:
+        - analytics
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActiveCabinet'
+
+  /alerts:
+    get:
+      summary: List all alerts
+      tags:
+        - alerts
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, resolved]
+        - in: query
+          name: severity
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Alert'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+  /batteries/{batteryId}/total-distance:
+    get:
+      summary: Get total distance traveled by a battery
+      tags:
+        - batteries
+      parameters:
+        - in: path
+          name: batteryId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  battery_id:
+                    type: string
+                  total_distance_km:
+                    type: number
+
+  /batteries/{batteryId}/avg-power-consumption:
+    get:
+      summary: Get average power consumption of a battery
+      tags:
+        - batteries
+      parameters:
+        - in: path
+          name: batteryId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: start_time
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: end_time
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  battery_id:
+                    type: string
+                  avg_power_consumption:
+                    type: number
+                  start_time:
+                    type: string
+                    format: date-time
+                  end_time:
+                    type: string
+                    format: date-time
+
+  /swapping-cabinets/energy-consumption:
+    get:
+      summary: Get total energy consumption of all swapping cabinets
+      tags:
+        - swapping-cabinets
+      parameters:
+        - in: query
+          name: start_time
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: end_time
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_energy_kwh:
+                    type: number
+                  grid_energy_kwh:
+                    type: number
+                  solar_energy_kwh:
+                    type: number
+                  start_time:
+                    type: string
+                    format: date-time
+                  end_time:
+                    type: string
+                    format: date-time
+
+  /batteries/health-below-threshold:
+    get:
+      summary: Get batteries with health below a certain threshold
+      tags:
+        - batteries
+      parameters:
+        - in: query
+          name: threshold
+          required: true
+          schema:
+            type: number
+            minimum: 0
+            maximum: 100
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BatteryHealth'
+
+  /swapping-cabinets/{cabinetId}/slots/{slotId}:
+    put:
+      summary: Update slot status
+      tags:
+        - swapping-cabinets
+      parameters:
+        - in: path
+          name: cabinetId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: slotId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [empty, occupied, charging, faulty]
+                battery_id:
+                  type: string
+      responses:
+        '200':
+          description: Successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CabinetSlot'
+        '404':
+          description: Cabinet or slot not found
+
+  /analytics/battery-usage:
+    get:
+      summary: Get battery usage analytics
+      tags:
+        - analytics
+      parameters:
+        - in: query
+          name: start_time
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: end_time
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_energy_consumed:
+                    type: number
+                  average_discharge_rate:
+                    type: number
+                  peak_usage_time:
+                    type: string
+                    format: time
+                  most_used_batteries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        battery_id:
+                          type: string
+                        usage_count:
+                          type: integer
+
+  /battery-readings:
+    post:
+      summary: Create a new battery reading
+      tags:
+        - battery-readings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewBatteryReading'
+      responses:
+        '201':
+          description: Successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatteryReading'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /battery-readings/{readingId}:
+    get:
+      summary: Get a specific battery reading
+      tags:
+        - battery-readings
+      parameters:
+        - in: path
+          name: readingId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatteryReading'
+        '404':
+          description: Battery reading not found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+    put:
+      summary: Update a specific battery reading
+      tags:
+        - battery-readings
+      parameters:
+        - in: path
+          name: readingId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBatteryReading'
+      responses:
+        '200':
+          description: Successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatteryReading'
+        '400':
+          description: Bad request
+        '404':
+          description: Battery reading not found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+    delete:
+      summary: Delete a specific battery reading
+      tags:
+        - battery-readings
+      parameters:
+        - in: path
+          name: readingId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Successfully deleted
+        '404':
+          description: Battery reading not found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /battery-readings/search:
+    get:
+      summary: Search battery readings
+      tags:
+        - battery-readings
+      parameters:
+        - in: query
+          name: batteryId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: startTime
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: endTime
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: minStateOfCharge
+          schema:
+            type: number
+        - in: query
+          name: maxStateOfCharge
+          schema:
+            type: number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BatteryReading'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+components:
+  schemas:
+    Battery:
+      type: object
+      properties:
+        id:
+          type: string
+        battery_code:
+          type: string
+        name:
+          type: string
+        model:
+          type: string
+        manufacturer:
+          type: string
+        battery_type:
+          type: string
+        capacity_wh:
+          type: number
+        nominal_voltage:
+          type: number
+        max_charge_rate:
+          type: number
+        max_discharge_rate:
+          type: number
+        total_cycles:
+          type: integer
+        manufacturing_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [active, inactive, charging, discharging, maintenance]
+
+    NewBattery:
+      type: object
+      required:
+        - battery_code
+        - name
+        - model
+        - manufacturer
+        - battery_type
+        - capacity_wh
+        - nominal_voltage
+        - max_charge_rate
+        - max_discharge_rate
+        - manufacturing_date
+      properties:
+        battery_code:
+          type: string
+        name:
+          type: string
+        model:
+          type: string
+        manufacturer:
+          type: string
+        battery_type:
+          type: string
+        capacity_wh:
+          type: number
+        nominal_voltage:
+          type: number
+        max_charge_rate:
+          type: number
+        max_discharge_rate:
+          type: number
+        manufacturing_date:
+          type: string
+          format: date
+
+    UpdateBattery:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, inactive, charging, discharging, maintenance]
+        total_cycles:
+          type: integer
+
+    CellVoltage:
+      type: object
+      properties:
+        cell_number:
+          type: integer
+        voltage:
+          type: number
+
+    BatteryHealth:
+      type: object
+      properties:
+        id:
+          type: string
+        battery_code:
+          type: string
+        initial_capacity:
+          type: number
+        current_capacity:
+          type: number
+        total_cycles:
+          type: integer
+        health_percentage:
+          type: number
+
+    BatteryLocation:
+      type: object
+      properties:
+        battery_id:
+          type: string
+        battery_code:
+          type: string
+        distance_meters:
+          type: number
+
+    SwappingCabinet:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        address:
+          type: string
+        total_slots:
+          type: integer
+        available_slots:
+          type: integer
+        status:
+          type: string
+          enum: [active, inactive, maintenance]
+        power_source:
+          type: string
+          enum: [grid, solar, hybrid]
+        last_maintenance_date:
+          type: string
+          format: date
+
+    CabinetSlot:
+      type: object
+      properties:
+        id:
+          type: string
+        slot_number:
+          type: integer
+        status:
+          type: string
+          enum: [empty, occupied, charging, faulty]
+        battery_id:
+          type: string
+        last_updated:
+          type: string
+          format: date-time
+
+    CabinetMetrics:
+      type: object
+      properties:
+        total_swaps:
+          type: integer
+        energy_consumed_kwh:
+          type: number
+        grid_energy_kwh:
+          type: number
+        solar_energy_kwh:
+          type: number
+        peak_usage_time:
+          type: string
+          format: time
+        average_charging_time_minutes:
+          type: number
+
+    BatteryHealthAnalytics:
+      type: object
+      properties:
+        average_health:
+          type: number
+        health_distribution:
+          type: object
+          additionalProperties:
+            type: integer
+        batteries_below_threshold:
+          type: integer
+
+    ActiveCabinet:
+      type: object
+      properties:
+        cabinet_id:
+          type: string
+        total_swaps:
+          type: integer
+        total_energy_consumed_kwh:
+          type: number
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+        alert_type:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        status:
+          type: string
+          enum: [active, resolved]
+        battery_id:
+          type: string
+        cabinet_id:
+          type: string
+        message:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        next:
+          type: string
+        previous:
+          type: string
+    NewBatteryReading:
+      type: object
+      required:
+        - batteryId
+        - stateOfCharge
+        - packVoltage
+        - current
+        - internalTemperature
+        - ambientTemperature
+        - latitude
+        - longitude
+      properties:
+        batteryId:
+          type: string
+          format: uuid
+        stateOfCharge:
+          type: number
+        packVoltage:
+          type: number
+        current:
+          type: number
+        internalTemperature:
+          type: number
+        ambientTemperature:
+          type: number
+        latitude:
+          type: number
+        longitude:
+          type: number
+        altitude:
+          type: number
+        speed:
+          type: number
+        powerOutput:
+          type: number
+        chargeRate:
+          type: number
+        dischargeRate:
+          type: number
+        cellVoltages:
+          type: array
+          items:
+            type: number
+          minItems: 20
+          maxItems: 20
+    UpdateBatteryReading:
+      type: object
+      properties:
+        stateOfCharge:
+          type: number
+        packVoltage:
+          type: number
+        current:
+          type: number
+        internalTemperature:
+          type: number
+        ambientTemperature:
+          type: number
+        latitude:
+          type: number
+        longitude:
+          type: number
+        altitude:
+          type: number
+        speed:
+          type: number
+        powerOutput:
+          type: number
+        chargeRate:
+          type: number
+        dischargeRate:
+          type: number
+        cellVoltages:
+          type: array
+          items:
+            type: number
+          minItems: 20
+          maxItems: 20
+    BatteryReading:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        batteryId:
+          type: string
+          format: uuid
+        time:
+          type: string
+          format: date-time
+        stateOfCharge:
+          type: number
+        packVoltage:
+          type: number
+        current:
+          type: number
+        internalTemperature:
+          type: number
+        ambientTemperature:
+          type: number
+        latitude:
+          type: number
+        longitude:
+          type: number
+        altitude:
+          type: number
+        speed:
+          type: number
+        powerOutput:
+          type: number
+        chargeRate:
+          type: number
+        dischargeRate:
+          type: number
+        cellVoltages:
+          type: array
+          items:
+            type: number
+          minItems: 20
+          maxItems: 20
