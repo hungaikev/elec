@@ -8,9 +8,12 @@ methodology and ask questions. In a second step, we’ll share additional questi
 
 ## Which architecture and technical solution would you suggest at scale?
 
+My Solution would be to use an event driven microservices architecture with a message bus to handle back pressure and scalability.
+
+
 ### Step 1: Core Architecture
 
-At the heart of our scalable architecture, we'll use a microservices-based approach with event-driven communication. 
+At the heart of our  architecture, we'll use a microservices-based approach with event-driven communication. 
 This allows for better scalability, fault isolation, and easier updates to individual components.
 
 **Key components:**
