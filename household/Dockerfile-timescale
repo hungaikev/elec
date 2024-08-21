@@ -1,0 +1,20 @@
+# Use a Debian-based TimescaleDB image explicitly
+FROM timescale/timescaledb-ha:pg16.4-ts2.16.1-all
+
+# Switch to the root user to install packages
+USER root
+
+# Install pg_cron using apt-get
+RUN apt-get update && \
+    apt-get install -y postgresql-16-cron && \
+    echo "shared_preload_libraries = 'timescaledb,pg_cron'" >> /etc/postgresql/postgresql.conf && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Switch back to the default user (postgres)
+USER postgres
+
+# Set default environment variables
+ENV POSTGRES_DB power_consumption_db
+ENV POSTGRES_USER poweruser
+ENV POSTGRES_PASSWORD powerpassword

@@ -2,18 +2,19 @@ version: '3.8'
 
 services:
   timescaledb:
-    image: timescale/timescaledb:latest-pg14
+    build:
+      context: .
+      dockerfile: Dockerfile-timescale
     container_name: timescaledb
     environment:
       - POSTGRES_DB=power_consumption_db
       - POSTGRES_USER=poweruser
       - POSTGRES_PASSWORD=powerpassword
     volumes:
-      - timescaledb_data:/var/lib/postgresql/data
+      - power_consumption_data_kisese_hungai:/var/lib/postgresql/data/power_consumption_db
       - ./init-scripts:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
-    command: ["postgres", "-c", "shared_preload_libraries=timescaledb,pg_cron"]
 
   metabase:
     image: metabase/metabase:latest
@@ -21,32 +22,43 @@ services:
     depends_on:
       - timescaledb
     environment:
-      - MB_DB_TYPE=postgres
-      - MB_DB_DBNAME=metabase
-      - MB_DB_PORT=5432
-      - MB_DB_USER=poweruser
-      - MB_DB_PASS=powerpassword
       - MB_DB_HOST=timescaledb
     ports:
       - "3000:3000"
+#
 
-  python_environment:
-    build:
-      context: .
-      dockerfile: Dockerfile-python
-    container_name: python_environment
-    depends_on:
-      - timescaledb
-    volumes:
-      - ./python_scripts:/app/scripts
-    environment:
-      - DB_HOST=timescaledb
-      - DB_NAME=power_consumption_db
-      - DB_USER=poweruser
-      - DB_PASSWORD=powerpassword
+# metabase:
+#    image: metabase/metabase:latest
+#    container_name: metabase
+#    depends_on:
+#      - timescaledb
+#    environment:
+#      - MB_DB_TYPE=postgres
+#      - MB_DB_DBNAME=power_consumption_db
+#      - MB_DB_PORT=5432
+#      - MB_DB_USER=poweruser
+#      - MB_DB_PASS=powerpassword
+#      - MB_DB_HOST=timescaledb
+#    ports:
+#      - "3000:3000"
+
+#  python_environment:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile-python
+#    container_name: python_environment
+#    depends_on:
+#      - timescaledb
+#    volumes:
+#      - ./python_scripts:/app/scripts
+#    environment:
+#      - DB_HOST=timescaledb
+#      - DB_NAME=power_consumption_db
+#      - DB_USER=poweruser
+#      - DB_PASSWORD=powerpassword
 
 volumes:
-  timescaledb_data:
+  power_consumption_data_kisese_hungai:
 
 networks:
   default:

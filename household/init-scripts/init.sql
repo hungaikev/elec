@@ -1,11 +1,37 @@
+ -- CREATE DATABASE power_consumption_db;
+
+-- Grant all privileges on the database
+GRANT ALL PRIVILEGES ON DATABASE power_consumption_db TO poweruser;
+
+-- Grant all privileges on all tables in the public schema
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO poweruser;
+
+-- Grant all privileges on all sequences in the public schema
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO poweruser;
+
+-- Grant all privileges on all functions in the public schema
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO poweruser;
+
 -- Enable TimescaleDB extension
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 
 -- Enable pg_cron extension
-CREATE EXTENSION IF NOT EXISTS pg_cron;
+-- CREATE EXTENSION IF NOT EXISTS pg_cron;
 
--- Create the power_consumption table
-CREATE TABLE power_consumption (
+-- Enable the UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Enable the PostGIS extension
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+-- Optionally, enable additional PostGIS-related extensions
+CREATE EXTENSION IF NOT EXISTS postgis_topology;
+CREATE EXTENSION IF NOT EXISTS postgis_raster;
+
+DROP TABLE IF EXISTS power_consumption CASCADE;
+
+-- Create the main power_consumption table
+CREATE TABLE IF NOT EXISTS power_consumption (
     date_time TIMESTAMP NOT NULL,
     global_active_power FLOAT,
     global_reactive_power FLOAT,
@@ -14,47 +40,25 @@ CREATE TABLE power_consumption (
     sub_metering_1 FLOAT,
     sub_metering_2 FLOAT,
     sub_metering_3 FLOAT
-);
+) PARTITION BY RANGE (date_time);
 
--- Convert to hypertable
-SELECT create_hypertable('power_consumption', 'date_time');
+-- Create partitions for each year from 2006 to 2011 (adjust as needed)
+DO $$
+DECLARE
+    year INT;
+BEGIN
+    FOR year IN 2006..2011 LOOP
+        EXECUTE format('
+            CREATE TABLE IF NOT EXISTS power_consumption_y%s
+            PARTITION OF power_consumption
+            FOR VALUES FROM (%L) TO (%L)',
+            year,
+            year || '-01-01',
+            (year + 1) || '-01-01'
+        );
+    END LOOP;
+END $$;
 
--- Create indexes
-CREATE INDEX idx_date_power ON power_consumption (date_time, global_active_power);
-CREATE INDEX idx_high_power ON power_consumption (date_time, global_active_power) WHERE global_active_power > 5;
-CREATE INDEX idx_hour_of_day ON power_consumption ((EXTRACT(HOUR FROM date_time)));
-
--- Set up retention policy
-SELECT add_retention_policy('power_consumption', INTERVAL '2 years');
-
--- Enable compression
-ALTER TABLE power_consumption SET (
-    timescaledb.compress,
-    timescaledb.compress_orderby = 'date_time DESC'
-);
-
-SELECT add_compression_policy('power_consumption', INTERVAL '7 days');
-
--- Create continuous aggregate
-CREATE MATERIALIZED VIEW daily_power_consumption
-WITH (timescaledb.continuous) AS
-SELECT time_bucket('1 day', date_time) AS day,
-       AVG(global_active_power) AS avg_power,
-       MAX(global_active_power) AS max_power,
-       MIN(global_active_power) AS min_power
-FROM power_consumption
-GROUP BY time_bucket('1 day', date_time);
-
-SELECT add_continuous_aggregate_policy('daily_power_consumption',
-    start_offset => INTERVAL '3 days',
-    end_offset => INTERVAL '1 hour',
-    schedule_interval => INTERVAL '1 hour');
-
--- Set up maintenance jobs
-SELECT cron.schedule('0 2 * * 0', $$
-    VACUUM ANALYZE power_consumption;
-$$);
-
-SELECT cron.schedule('0 3 * * 0', $$
-    ANALYZE VERBOSE power_consumption;
-$$);
+-- Create indexes for faster querying
+CREATE INDEX IF NOT EXISTS idx_date_power ON power_consumption (date_time, global_active_power);
+CREATE INDEX IF NOT EXISTS idx_high_power ON power_consumption (date_time, global_active_power) WHERE global_active_power > 5;
