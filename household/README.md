@@ -152,7 +152,7 @@ Our analysis of hourly consumption data revealed clear daily patterns:
 - Off-peak hours: The lowest consumption occurs between 2 AM and 5 AM, averaging 0.35 kW.
 - Morning routine: A noticeable increase in consumption is observed from 7 AM to 9 AM, averaging 0.98 kW, likely corresponding to morning activities.
 
-[Insert daily consumption pattern graph]
+
 
 These patterns suggest opportunities for energy savings by shifting some high-consumption activities to off-peak hours.
 
@@ -163,7 +163,6 @@ Seasonal analysis revealed significant variations in energy consumption:
 - Summer (Jun-Aug): Second highest, averaging 1.62 kW per day
 - Spring (Mar-May) and Fall (Sep-Nov): Lower consumption, averaging 1.41 kW and 1.39 kW per day respectively
 
-[Insert seasonal consumption graph]
 
 The high winter consumption suggests that heating is a major factor in the household's energy use, while summer peaks indicate significant air conditioning usage.
 
@@ -179,13 +178,12 @@ We implemented and compared four forecasting methods:
 Results for 30-day forecasts:
 
 | Method | Mean Absolute Percentage Error (MAPE) |
-|--------|--------------------------------------|
-| SMA    | 15.3%                                |
-| WMA    | 12.0%                                |
-| ES     | 10.5%                                |
-| SN     | 11.8%                                |
+|--------|---------------------------------------|
+| SMA    | 15.3%                                 |
+| WMA    | 12.0%                                 |
+| ES     | 10.5%                                 |
+| SN     | 11.8%                                 |
 
-[Insert forecast comparison graph]
 
 Exponential Smoothing performed best for short-term forecasts, capturing both trend and seasonal components effectively.
 
@@ -202,7 +200,7 @@ Our anomaly detection algorithms identified several noteworthy events:
     - 5 instances of sudden, short-term spikes in consumption were detected.
     - Example: 2008-05-12 14:23 - 2.87 kW spike lasting 7 minutes.
 
-[Insert anomaly detection graph]
+
 
 These anomalies suggest opportunities for energy savings through better insulation (for weather-related spikes) and potential equipment maintenance (for unexpected short-term spikes).
 
@@ -217,7 +215,7 @@ Analysis of submetered vs. total consumption revealed:
 - Submetered consumption accounts for 65% of total energy use.
 - The remaining 35% is consumed by non-submetered appliances.
 
-[Insert submetering efficiency pie chart]
+
 
 This suggests significant energy use by appliances not covered by the submeters, presenting an opportunity for further investigation and potential efficiency improvements.
 
@@ -240,7 +238,6 @@ Detailed analysis of submetered areas showed:
     - Shows weekly patterns with higher usage on weekends.
     - Lowest correlation with overall consumption (0.3).
 
-[Insert submetering distribution and correlation graphs]
 
 These insights highlight the significant impact of heating/cooling and kitchen appliances on overall energy consumption, suggesting these as primary areas for efficiency improvements.
 
